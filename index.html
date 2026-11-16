@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tonin Connect - Créateur de Nouveautés</title>
+    <!-- Chargement de Tailwind CSS pour l'interface moderne -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chargement de html2canvas pour l'export direct en PNG en plus de la capture d'écran -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Police Inter et Outfit pour un rendu moderne et percutant -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090d16;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .font-display {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Effet métallisé doré/cuivré inspiré du logo Tonin Connect */
+        .copper-text {
+            background: linear-gradient(135deg, #f7d5a8 0%, #d89b63 45%, #b5733c 75%, #f0c38e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Effet d'ombre portée réaliste pour la carte */
+        .card-shadow {
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 0 30px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Scrollbar discrète pour les panneaux d'édition */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Animation douce pour les emojis sur les bords */
+        .edge-emoji {
+            user-select: none;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45));
+        }
+        .edge-emoji:hover {
+            transform: scale(1.2) !important;
+            cursor: pointer;
+        }
+
+        /* Mode Aperçu Plein Écran (Capture d'écran facile) */
+        body.screenshot-mode #sidebar-controls,
+        body.screenshot-mode #top-bar,
+        body.screenshot-mode #pages-bar {
+            display: none !important;
+        }
+        body.screenshot-mode #preview-area {
+            width: 100vw !important;
+            height: 100vh !important;
+            padding: 1rem !important;
+            background: #05080f !important;
+        }
+        body.screenshot-mode #exit-screenshot-btn {
+            display: flex !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Barre supérieure -->
+    <header id="top-bar" class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30">
+        <div class="flex items-center gap-3">
+            <!-- Mini icône inspirée du logo Tonin Connect -->
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0e4d64] to-[#051d29] border border-[#e0a96d]/50 flex items-center justify-center shadow-lg">
+                <svg class="w-5 h-5 text-[#e0a96d]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 22 12 12 22 2 12 12 2"></polygon>
+                    <circle cx="12" cy="12" r="2.5" fill="currentColor"></circle>
+                    <line x1="12" y1="6" x2="12" y2="9.5"></line>
+                    <line x1="12" y1="14.5" x2="12" y2="18"></line>
+                    <line x1="6" y1="12" x2="9.5" y2="12"></line>
+                    <line x1="14.5" y1="12" x2="18" y2="12"></line>
+                </svg>
+            </div>
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <h1 class="font-display font-bold text-base sm:text-lg leading-tight text-white">Studio Nouveautés</h1>
+                    <!-- Indicateur discret d'état de sauvegarde automatique -->
+                    <span id="autosave-indicator" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-[11px] font-medium text-emerald-400 transition-all duration-300">
+                        <svg class="w-3 h-3 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span id="autosave-text">Sauvegardé automatiquement</span>
+                    </span>
+                </div>
+                <p class="text-xs text-slate-400">Crée tes annonces & captures d'écran</p>
+            </div>
+        </div>
+
+        <!-- Actions principales -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button onclick="openResetModal()" title="Réinitialiser toutes les pages et repartir à zéro" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/50 text-red-300 text-xs font-semibold border border-red-900/50 transition active:scale-95">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                <span class="hidden md:inline">Réinitialiser</span>
+            </button>
+
+            <button onclick="toggleScreenshotMode()" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs sm:text-sm font-semibold border border-slate-700 transition active:scale-95">
+                <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                </svg>
+                <span>Mode Capture</span>
+            </button>
+
+            <button onclick="downloadCurrentCard()" id="download-btn" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#d89b63] to-[#b5733c] hover:from-[#e5aa73] hover:to-[#c58148] text-slate-950 text-xs sm:text-sm font-bold shadow-lg shadow-amber-900/30 transition active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span>Enregistrer PNG</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Bouton flottant pour quitter le mode capture d'écran (masqué par défaut, apparaît au survol ou tap) -->
+    <button id="exit-screenshot-btn" onclick="toggleScreenshotMode()" class="hidden fixed bottom-5 right-5 z-50 items-center gap-2 px-4 py-2.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white text-xs font-semibold backdrop-blur-md border border-slate-700/70 shadow-2xl opacity-40 hover:opacity-100 transition-opacity">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <span>Quitter l'aperçu</span>
+    </button>
+
+    <!-- Zone principale : Panneau d'édition à gauche + Aperçu visuel à droite -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- PANNEAU DE CONTRÔLES (Gauche) -->
+        <aside id="sidebar-controls" class="w-full lg:w-[420px] xl:w-[450px] bg-slate-900/70 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col lg:h-[calc(100vh-61px)] overflow-y-auto">
+            
+            <!-- Onglets de navigation de l'éditeur -->
+            <div class="grid grid-cols-3 border-b border-slate-800 bg-slate-950/50 p-1.5 gap-1 sticky top-0 z-20 backdrop-blur-md">
+                <button onclick="switchTab('content')" id="tab-content" class="tab-btn py-2 px-3 rounded-lg text-xs font-bold bg-slate-800 text-white shadow transition">
+                    ✍️ Texte & Liste
+                </button>
+                <button onclick="switchTab('emojis')" id="tab-emojis" class="tab-btn py-2 px-3 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+                    ✨ Emojis Bords
+                </button>
+                <button onclick="switchTab('style')" id="tab-style" class="tab-btn py-2 px-3 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">
+                    🎨 Couleurs & Format
+                </button>
+            </div>
+
+            <div class="p-4 sm:p-5 space-y-6 flex-1">
+                
+                <!-- ONGLET 1 : TEXTE & LISTE -->
+                <div id="panel-content" class="space-y-5">
+                    <!-- Badge / Sur-titre -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Badge / Étiquette</label>
+                            <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                                <input type="checkbox" id="input-show-badge" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0" onchange="updateCurrentPage('showBadge', this.checked)">
+                                <span>Afficher</span>
+                            </label>
+                        </div>
+                        <input type="text" id="input-badge" placeholder="Ex: NOUVEAUTÉ • TONIN CONNECT" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500/60 focus:outline-none text-sm text-white placeholder-slate-600 transition" oninput="updateCurrentPage('badge', this.value)">
+                    </div>
+
+                    <!-- Titre principal -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Grand Titre</label>
+                        <input type="text" id="input-title" placeholder="Ex: Nouveau jeu : Snake !" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500/60 focus:outline-none text-base font-bold text-white placeholder-slate-600 transition" oninput="updateCurrentPage('title', this.value)">
+                    </div>
+
+                    <!-- Sous-titre optionnel -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Sous-titre / Description courte</label>
+                        <input type="text" id="input-subtitle" placeholder="Ex: Disponible dès maintenant sur l'application" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500/60 focus:outline-none text-sm text-slate-200 placeholder-slate-600 transition" oninput="updateCurrentPage('subtitle', this.value)">
+                    </div>
+
+                    <!-- Liste de petites lignes -->
+                    <div class="pt-2 border-t border-slate-800/80">
+                        <div class="flex items-center justify-between mb-3">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Petites lignes (Liste)</label>
+                            <button onclick="addListItem()" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-xs font-bold transition">
+                                <span>+ Ajouter une ligne</span>
+                            </button>
+                        </div>
+
+                        <div id="list-items-editor" class="space-y-2.5">
+                            <!-- Généré dynamiquement en JS -->
+                        </div>
+                    </div>
+
+                    <!-- Pied de carte / Signature -->
+                    <div class="pt-2 border-t border-slate-800/80">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Signature en bas</label>
+                            <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                                <input type="checkbox" id="input-show-footer" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0" onchange="updateCurrentPage('showFooter', this.checked)">
+                                <span>Afficher</span>
+                            </label>
+                        </div>
+                        <input type="text" id="input-footer" placeholder="Ex: Tonin Connect" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500/60 focus:outline-none text-sm text-slate-200 placeholder-slate-600 transition" oninput="updateCurrentPage('footer', this.value)">
+                    </div>
+                </div>
+
+                <!-- ONGLET 2 : EMOJIS SUR LES BORDS -->
+                <div id="panel-emojis" class="hidden space-y-5">
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5">
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Clique sur un emoji ci-dessous pour l'ajouter sur les bords de l'image, ou tape le tien !
+                        </p>
+                        
+                        <!-- Ajout rapide d'emoji personnalisé -->
+                        <div class="flex gap-2 mt-3">
+                            <input type="text" id="custom-emoji-input" maxlength="4" placeholder="Colle un emoji (ex: 🐍)" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-center text-white focus:border-amber-500 focus:outline-none">
+                            <button onclick="addCustomEmoji()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
+                                Ajouter au bord
+                            </button>
+                        </div>
+
+                        <!-- Palette d'emojis rapides -->
+                        <div class="mt-3">
+                            <span class="text-[11px] font-semibold text-slate-400 block mb-2">Suggestions rapides :</span>
+                            <div class="flex flex-wrap gap-1.5" id="quick-emojis-grid">
+                                <!-- Rempli par JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions de disposition automatique -->
+                    <div class="flex gap-2">
+                        <button onclick="autoDistributeEmojis()" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition">
+                            🎲 Répartir sur les bords
+                        </button>
+                        <button onclick="clearAllEmojis()" class="py-2 px-3 rounded-xl bg-red-950/40 hover:bg-red-900/50 text-xs font-semibold text-red-400 border border-red-900/50 transition">
+                            Tout effacer
+                        </button>
+                    </div>
+
+                    <!-- Liste des emojis placés sur la carte -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                            Emojis placés sur cette page (<span id="emoji-count">0</span>)
+                        </label>
+                        <div id="placed-emojis-list" class="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
+                            <!-- Liste générée dynamiquement -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ONGLET 3 : COULEURS & FORMAT -->
+                <div id="panel-style" class="hidden space-y-5">
+                    
+                    <!-- Format de l'image -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Format de l'image</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="updateCurrentPage('aspect', '1:1')" id="aspect-1:1" class="aspect-btn p-2.5 rounded-xl border text-center transition">
+                                <div class="w-6 h-6 border-2 border-current mx-auto mb-1 rounded-sm"></div>
+                                <span class="text-xs font-bold block">Carré 1:1</span>
+                                <span class="text-[10px] opacity-70">Post / Icône</span>
+                            </button>
+                            <button onclick="updateCurrentPage('aspect', '9:16')" id="aspect-9:16" class="aspect-btn p-2.5 rounded-xl border text-center transition">
+                                <div class="w-4 h-7 border-2 border-current mx-auto mb-1 rounded-sm"></div>
+                                <span class="text-xs font-bold block">Story 9:16</span>
+                                <span class="text-[10px] opacity-70">Mobile / TikTok</span>
+                            </button>
+                            <button onclick="updateCurrentPage('aspect', '16:9')" id="aspect-16:9" class="aspect-btn p-2.5 rounded-xl border text-center transition">
+                                <div class="w-8 h-5 border-2 border-current mx-auto mb-1.5 mt-0.5 rounded-sm"></div>
+                                <span class="text-xs font-bold block">Large 16:9</span>
+                                <span class="text-[10px] opacity-70">Bannière</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Thèmes de couleurs prédéfinis -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Thèmes & Couleurs</label>
+                        <div class="grid grid-cols-2 gap-2.5" id="themes-grid">
+                            <!-- Généré dynamiquement par JS -->
+                        </div>
+                    </div>
+
+                    <!-- Personnalisation fine des couleurs -->
+                    <div class="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-3">
+                        <span class="text-xs font-semibold text-slate-300 block">Couleurs sur-mesure</span>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">Fond 1</label>
+                                <input type="color" id="color-bg1" class="w-full h-9 rounded-lg cursor-pointer bg-transparent border-0" onchange="updateCustomColors()">
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">Fond 2</label>
+                                <input type="color" id="color-bg2" class="w-full h-9 rounded-lg cursor-pointer bg-transparent border-0" onchange="updateCustomColors()">
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">Accent / Bord</label>
+                                <input type="color" id="color-accent" class="w-full h-9 rounded-lg cursor-pointer bg-transparent border-0" onchange="updateCustomColors()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Options visuelles (Logo géométrique, bordure, alignement) -->
+                    <div class="space-y-2.5 pt-2 border-t border-slate-800">
+                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 cursor-pointer">
+                            <span class="text-xs font-medium text-slate-200">Afficher l'emblème Tonin Connect</span>
+                            <input type="checkbox" id="input-show-emblem" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0" onchange="updateCurrentPage('showEmblem', this.checked)">
+                        </label>
+
+                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 cursor-pointer">
+                            <span class="text-xs font-medium text-slate-200">Cadre décoratif intérieur</span>
+                            <input type="checkbox" id="input-show-border" class="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0" onchange="updateCurrentPage('showBorder', this.checked)">
+                        </label>
+
+                        <!-- Importer un logo personnalisé -->
+                        <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-200">Importer une image / logo</span>
+                                <div class="flex items-center gap-2">
+                                    <label class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-white cursor-pointer transition">
+                                        Choisir
+                                        <input type="file" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                                    </label>
+                                    <button id="remove-logo-btn" onclick="removeCustomLogo()" class="hidden px-2 py-1 rounded-lg bg-red-950/60 text-red-400 text-[11px] font-semibold">
+                                        Suppr.
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </aside>
+
+        <!-- ZONE DE PRÉVISUALISATION & GESTION DES PAGES (Droite) -->
+        <section id="preview-area" class="flex-1 flex flex-col bg-[#060911] relative overflow-hidden min-h-[520px]">
+            
+            <!-- Barre de gestion des pages (Multi-pages) -->
+            <div id="pages-bar" class="bg-slate-900/50 border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between gap-2 overflow-x-auto">
+                <div class="flex items-center gap-2" id="pages-tabs-container">
+                    <!-- Onglets des pages générés en JS -->
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="duplicateCurrentPage()" title="Dupliquer cette page" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="hidden sm:inline">Dupliquer</span>
+                    </button>
+                    <button onclick="addNewPage()" class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1 transition">
+                        <span>+ Nouvelle Page</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conteneur centré de la carte finale -->
+            <div class="flex-1 flex items-center justify-center p-4 sm:p-8 overflow-auto">
+                
+                <!-- LA CARTE VISUELLE (Ce que l'utilisateur capture ou télécharge) -->
+                <div id="capture-canvas" class="relative overflow-hidden rounded-[28px] card-shadow flex flex-col justify-between transition-all duration-300 select-none" style="width: 460px; height: 460px;">
+                    
+                    <!-- Calque d'éclairage d'ambiance (reflet doux en haut à droite comme sur l'image fournie) -->
+                    <div id="card-ambient-glow" class="absolute inset-0 pointer-events-none opacity-60"></div>
+
+                    <!-- Cadre décoratif intérieur -->
+                    <div id="card-inner-frame" class="absolute inset-3.5 rounded-[20px] border pointer-events-none transition-all"></div>
+
+                    <!-- Conteneur des Emojis sur les bords -->
+                    <div id="card-emojis-layer" class="absolute inset-0 pointer-events-auto overflow-hidden z-20">
+                        <!-- Emojis placés dynamiquement -->
+                    </div>
+
+                    <!-- Contenu principal de la carte -->
+                    <div class="relative z-10 flex-1 flex flex-col justify-between p-7 sm:p-9 text-center">
+                        
+                        <!-- Haut de la carte : Emblème / Logo + Badge -->
+                        <div class="flex flex-col items-center gap-2.5">
+                            <!-- Emblème géométrique Tonin Connect ou Logo importé -->
+                            <div id="card-emblem-container" class="flex items-center justify-center">
+                                <!-- SVG inspiré du logo fourni -->
+                                <svg id="default-emblem-svg" class="w-12 h-12 drop-shadow-md" viewBox="0 0 100 100" fill="none">
+                                    <polygon points="50,6 94,50 50,94 6,50" stroke="currentColor" stroke-width="3.5" fill="none"/>
+                                    <polygon points="50,16 84,50 50,84 16,50" stroke="currentColor" stroke-width="2" fill="none" opacity="0.8"/>
+                                    <line x1="50" y1="6" x2="50" y2="94" stroke="currentColor" stroke-width="2.5"/>
+                                    <line x1="6" y1="50" x2="94" y2="50" stroke="currentColor" stroke-width="2.5"/>
+                                    <rect x="42" y="42" width="16" height="16" transform="rotate(45 50 50)" fill="currentColor"/>
+                                    <rect x="44" y="23" width="12" height="12" transform="rotate(45 50 29)" fill="currentColor"/>
+                                    <rect x="44" y="65" width="12" height="12" transform="rotate(45 50 71)" fill="currentColor"/>
+                                    <rect x="23" y="44" width="12" height="12" transform="rotate(45 29 50)" fill="currentColor"/>
+                                    <rect x="65" y="44" width="12" height="12" transform="rotate(45 71 50)" fill="currentColor"/>
+                                </svg>
+                                <img id="custom-emblem-img" class="hidden w-14 h-14 object-contain rounded-xl drop-shadow-md" alt="Logo personnalisé">
+                            </div>
+
+                            <!-- Badge / Sur-titre -->
+                            <div id="card-badge" class="px-3.5 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase border backdrop-blur-sm shadow-sm">
+                                NOUVEAUTÉ • TONIN CONNECT
+                            </div>
+                        </div>
+
+                        <!-- Milieu : Titre + Sous-titre + Liste des lignes -->
+                        <div class="my-auto py-3 flex flex-col items-center w-full">
+                            <h2 id="card-title" class="font-display font-extrabold text-2xl sm:text-3xl leading-tight tracking-tight drop-shadow-sm max-w-[92%]">
+                                Nouveau jeu : Snake !
+                            </h2>
+                            
+                            <p id="card-subtitle" class="text-xs sm:text-sm font-medium mt-1.5 opacity-90 max-w-[88%]">
+                                Découvre la toute dernière mise à jour
+                            </p>
+
+                            <!-- Liste des petites lignes -->
+                            <div id="card-list-container" class="w-full max-w-[92%] mt-4 space-y-2 text-left">
+                                <!-- Généré dynamiquement -->
+                            </div>
+                        </div>
+
+                        <!-- Bas de la carte : Signature -->
+                        <div id="card-footer-container" class="pt-1">
+                            <span id="card-footer" class="font-display font-bold text-sm tracking-wide drop-shadow">
+                                Tonin Connect
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Astuce en bas de la zone d'aperçu -->
+            <div class="text-center pb-3 px-4">
+                <p class="text-[11px] text-slate-500">
+                    💡 Astuce : Clique sur <strong class="text-slate-300">Mode Capture</strong> pour masquer les menus et prendre ta capture d'écran, ou clique sur <strong class="text-amber-400/90">Enregistrer PNG</strong>.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Notification Toast personnalisée (pas d'alert()) -->
+    <div id="toast-message" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-semibold shadow-2xl opacity-0 pointer-events-none transition-all duration-300">
+        Action effectuée !
+    </div>
+
+    <!-- Modale de confirmation pour réinitialiser (remplace confirm()) -->
+    <div id="reset-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-red-950/70 border border-red-800/60 flex items-center justify-center text-red-400 shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-display font-bold text-base text-white">Tout réinitialiser ?</h3>
+                    <p class="text-xs text-slate-400">Toutes tes pages sauvegardées seront effacées.</p>
+                </div>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Cette action supprimera la sauvegarde automatique enregistrée dans ton navigateur et remettra le modèle par défaut.
+            </p>
+            <div class="flex items-center justify-end gap-2 pt-1">
+                <button onclick="closeResetModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition">
+                    Annuler
+                </button>
+                <button onclick="confirmResetAll()" class="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-bold text-white shadow-lg shadow-red-950/50 transition">
+                    Tout effacer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. CONFIGURATION, SAUVEGARDE & PALETTES DE COULEURS
+        // ==========================================
+        const STORAGE_KEY = 'tonin_connect_studio_v1';
+        let saveTimeout = null;
+
+        const THEMES = [
+            {
+                id: 'tonin-classic',
+                name: 'Tonin Connect (Original)',
+                bg1: '#0e4d64',
+                bg2: '#051d29',
+                accent: '#e0a96d',
+                text: '#ffffff',
+                itemBg: 'rgba(5, 29, 41, 0.55)'
+            },
+            {
+                id: 'ocean-gold',
+                name: 'Bleu Abysse & Or',
+                bg1: '#134e6f',
+                bg2: '#061a2b',
+                accent: '#f5c77e',
+                text: '#ffffff',
+                itemBg: 'rgba(6, 26, 43, 0.6)'
+            },
+            {
+                id: 'neon-violet',
+                name: 'Violet Gaming',
+                bg1: '#3b1d6e',
+                bg2: '#120726',
+                accent: '#c084fc',
+                text: '#ffffff',
+                itemBg: 'rgba(18, 7, 38, 0.6)'
+            },
+            {
+                id: 'emerald-pro',
+                name: 'Émeraude Snake',
+                bg1: '#065f46',
+                bg2: '#022c22',
+                accent: '#6ee7b7',
+                text: '#ffffff',
+                itemBg: 'rgba(2, 44, 34, 0.6)'
+            },
+            {
+                id: 'ruby-fire',
+                name: 'Rubis & Flamme',
+                bg1: '#7f1d1d',
+                bg2: '#270707',
+                accent: '#fca5a5',
+                text: '#ffffff',
+                itemBg: 'rgba(39, 7, 7, 0.6)'
+            },
+            {
+                id: 'midnight-amber',
+                name: 'Noir Carbone & Ambre',
+                bg1: '#1e293b',
+                bg2: '#090d16',
+                accent: '#fbbf24',
+                text: '#f8fafc',
+                itemBg: 'rgba(9, 13, 22, 0.65)'
+            }
+        ];
+
+        const QUICK_EMOJIS = ['🐍', '🎮', '✨', '🔥', '🚀', '🏆', '💎', '⚡', '🎯', '🎉', '🕹️', '⭐', '🆕', '👑', '💥', '🎲'];
+
+        // Positions prédéfinies sur les bords (en pourcentage X, Y) pour éviter de cacher le texte central
+        const EDGE_SLOTS = [
+            { x: 6, y: 6, rot: -15 },
+            { x: 94, y: 6, rot: 15 },
+            { x: 6, y: 94, rot: 12 },
+            { x: 94, y: 94, rot: -12 },
+            { x: 50, y: 4, rot: 0 },
+            { x: 50, y: 96, rot: 0 },
+            { x: 4, y: 32, rot: -20 },
+            { x: 96, y: 32, rot: 20 },
+            { x: 4, y: 68, rot: 18 },
+            { x: 96, y: 68, rot: -18 },
+            { x: 24, y: 5, rot: -10 },
+            { x: 76, y: 5, rot: 10 },
+            { x: 24, y: 95, rot: 10 },
+            { x: 76, y: 95, rot: -10 }
+        ];
+
+        // ==========================================
+        // 2. ÉTAT DE L'APPLICATION (MULTI-PAGES & RESTAURATION)
+        // ==========================================
+        function getDefaultPages() {
+            return [
+                {
+                    id: Date.now(),
+                    pageName: 'Page 1 • Snake',
+                    aspect: '1:1',
+                    themeId: 'tonin-classic',
+                    bg1: '#0e4d64',
+                    bg2: '#051d29',
+                    accent: '#e0a96d',
+                    showEmblem: true,
+                    customLogo: null,
+                    showBorder: true,
+                    showBadge: true,
+                    badge: 'NOUVEAUTÉ • JEU',
+                    title: 'Nouveau jeu : Snake !',
+                    subtitle: 'Le grand classique débarque sur Tonin Connect',
+                    items: [
+                        { id: 1, icon: '🐍', text: 'Mode classique & vitesse progressive' },
+                        { id: 2, icon: '🏆', text: 'Record personnel & classement' },
+                        { id: 3, icon: '🎮', text: 'Jouable directement sur l’application' }
+                    ],
+                    showFooter: true,
+                    footer: 'Tonin Connect',
+                    edgeEmojis: [
+                        { id: 101, char: '🐍', x: 7, y: 8, size: 34, rot: -15 },
+                        { id: 102, char: '🎮', x: 93, y: 8, size: 32, rot: 15 },
+                        { id: 103, char: '✨', x: 7, y: 92, size: 28, rot: 10 },
+                        { id: 104, char: '🔥', x: 93, y: 92, size: 32, rot: -12 },
+                        { id: 105, char: '🍎', x: 4, y: 50, size: 26, rot: -18 },
+                        { id: 106, char: '🏆', x: 96, y: 50, size: 26, rot: 18 }
+                    ]
+                }
+            ];
+        }
+
+        let pages = getDefaultPages();
+        let currentPageIndex = 0;
+
+        function getCurrentPage() {
+            return pages[currentPageIndex];
+        }
+
+        // Sauvegarde automatique dans localStorage avec gestion d'erreurs (quota)
+        function saveToLocalStorage() {
+            const indicator = document.getElementById('autosave-indicator');
+            const textEl = document.getElementById('autosave-text');
+
+            if (indicator && textEl) {
+                indicator.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950/70 border border-amber-500/30 text-[11px] font-medium text-amber-300 transition-all duration-300';
+                textEl.textContent = 'Sauvegarde...';
+            }
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                try {
+                    const payload = {
+                        version: 1,
+                        updatedAt: Date.now(),
+                        currentPageIndex: currentPageIndex,
+                        pages: pages
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+                    if (indicator && textEl) {
+                        indicator.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-[11px] font-medium text-emerald-400 transition-all duration-300';
+                        textEl.textContent = 'Sauvegardé automatiquement';
+                    }
+                } catch (err) {
+                    console.error('Erreur sauvegarde localStorage :', err);
+                    if (indicator && textEl) {
+                        indicator.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-950/70 border border-red-500/40 text-[11px] font-medium text-red-300 transition-all duration-300';
+                        textEl.textContent = err.name === 'QuotaExceededError' ? 'Mémoire pleine (image trop lourde)' : 'Erreur sauvegarde';
+                    }
+                    if (err.name === 'QuotaExceededError') {
+                        showToast('Mémoire du navigateur pleine : essaie une image plus légère.');
+                    }
+                }
+            }, 180);
+        }
+
+        // Restauration automatique au démarrage
+        function loadFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return false;
+
+                const parsed = JSON.parse(raw);
+                if (parsed && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
+                    pages = parsed.pages;
+                    currentPageIndex = Math.min(
+                        Math.max(0, Number(parsed.currentPageIndex) || 0),
+                        pages.length - 1
+                    );
+                    return true;
+                }
+            } catch (err) {
+                console.error('Erreur lors de la restauration localStorage :', err);
+            }
+            return false;
+        }
+
+        // Gestion de la modale de réinitialisation
+        function openResetModal() {
+            document.getElementById('reset-modal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('reset-modal').classList.add('hidden');
+        }
+
+        function confirmResetAll() {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (err) {
+                console.error(err);
+            }
+            pages = getDefaultPages();
+            currentPageIndex = 0;
+            loadPageIntoEditor();
+            renderPagesBar();
+            renderPreviewCard();
+            saveToLocalStorage();
+            closeResetModal();
+            showToast('Tout a été réinitialisé !');
+        }
+
+        // ==========================================
+        // 3. INITIALISATION & RENDU GLOBAL
+        // ==========================================
+        window.onload = function() {
+            const restored = loadFromLocalStorage();
+            renderQuickEmojis();
+            renderThemesGrid();
+            loadPageIntoEditor();
+            renderPagesBar();
+            renderPreviewCard();
+            if (restored) {
+                showToast('Tes pages précédentes ont été restaurées !');
+            } else {
+                saveToLocalStorage();
+            }
+        };
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2400);
+        }
+
+        // Gestion des onglets de l'éditeur
+        function switchTab(tabName) {
+            ['content', 'emojis', 'style'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const panel = document.getElementById(`panel-${t}`);
+                if (t === tabName) {
+                    btn.className = 'tab-btn py-2 px-3 rounded-lg text-xs font-bold bg-slate-800 text-white shadow transition';
+                    panel.classList.remove('hidden');
+                } else {
+                    btn.className = 'tab-btn py-2 px-3 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition';
+                    panel.classList.add('hidden');
+                }
+            });
+        }
+
+        // ==========================================
+        // 4. GESTION DES PAGES (AJOUT, DUPLICATION, SUPPRESSION)
+        // ==========================================
+        function renderPagesBar() {
+            const container = document.getElementById('pages-tabs-container');
+            container.innerHTML = '';
+
+            pages.forEach((page, index) => {
+                const isActive = index === currentPageIndex;
+                const tab = document.createElement('div');
+                tab.className = `flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition border ${
+                    isActive 
+                    ? 'bg-slate-800 text-white border-amber-500/50 shadow' 
+                    : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200'
+                }`;
+
+                const label = document.createElement('span');
+                label.textContent = `Page ${index + 1}`;
+                label.onclick = () => selectPage(index);
+                tab.appendChild(label);
+
+                if (pages.length > 1) {
+                    const delBtn = document.createElement('button');
+                    delBtn.innerHTML = '&times;';
+                    delBtn.title = 'Supprimer cette page';
+                    delBtn.className = 'text-slate-500 hover:text-red-400 font-bold text-sm leading-none ml-1';
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deletePage(index);
+                    };
+                    tab.appendChild(delBtn);
+                }
+
+                container.appendChild(tab);
+            });
+        }
+
+        function selectPage(index) {
+            currentPageIndex = index;
+            loadPageIntoEditor();
+            renderPagesBar();
+            renderPreviewCard();
+            saveToLocalStorage();
+        }
+
+        function addNewPage() {
+            const newPage = {
+                id: Date.now(),
+                pageName: `Page ${pages.length + 1}`,
+                aspect: getCurrentPage().aspect,
+                themeId: getCurrentPage().themeId,
+                bg1: getCurrentPage().bg1,
+                bg2: getCurrentPage().bg2,
+                accent: getCurrentPage().accent,
+                showEmblem: true,
+                customLogo: getCurrentPage().customLogo,
+                showBorder: true,
+                showBadge: true,
+                badge: 'NOUVEAUTÉ • TONIN CONNECT',
+                title: 'Nouvelle fonctionnalité !',
+                subtitle: 'Découvre ce qui arrive sur l’application',
+                items: [
+                    { id: Date.now() + 1, icon: '✨', text: 'Interface plus fluide et rapide' },
+                    { id: Date.now() + 2, icon: '🚀', text: 'Nouvelles options disponibles' }
+                ],
+                showFooter: true,
+                footer: 'Tonin Connect',
+                edgeEmojis: [
+                    { id: Date.now() + 3, char: '✨', x: 7, y: 8, size: 30, rot: -15 },
+                    { id: Date.now() + 4, char: '🚀', x: 93, y: 8, size: 30, rot: 15 },
+                    { id: Date.now() + 5, char: '🔥', x: 7, y: 92, size: 30, rot: 12 },
+                    { id: Date.now() + 6, char: '💎', x: 93, y: 92, size: 30, rot: -12 }
+                ]
+            };
+            pages.push(newPage);
+            selectPage(pages.length - 1);
+            showToast('Nouvelle page créée !');
+        }
+
+        function duplicateCurrentPage() {
+            const copy = JSON.parse(JSON.stringify(getCurrentPage()));
+            copy.id = Date.now();
+            pages.splice(currentPageIndex + 1, 0, copy);
+            selectPage(currentPageIndex + 1);
+            showToast('Page dupliquée !');
+        }
+
+        function deletePage(index) {
+            if (pages.length <= 1) return;
+            pages.splice(index, 1);
+            if (currentPageIndex >= pages.length) {
+                currentPageIndex = pages.length - 1;
+            }
+            selectPage(currentPageIndex);
+            showToast('Page supprimée');
+        }
+
+        // ==========================================
+        // 5. SYNCHRONISATION ÉDITEUR <-> DONNÉES
+        // ==========================================
+        function loadPageIntoEditor() {
+            const p = getCurrentPage();
+            document.getElementById('input-show-badge').checked = p.showBadge;
+            document.getElementById('input-badge').value = p.badge;
+            document.getElementById('input-title').value = p.title;
+            document.getElementById('input-subtitle').value = p.subtitle;
+            document.getElementById('input-show-footer').checked = p.showFooter;
+            document.getElementById('input-footer').value = p.footer;
+
+            document.getElementById('color-bg1').value = p.bg1;
+            document.getElementById('color-bg2').value = p.bg2;
+            document.getElementById('color-accent').value = p.accent;
+
+            document.getElementById('input-show-emblem').checked = p.showEmblem;
+            document.getElementById('input-show-border').checked = p.showBorder;
+
+            const removeLogoBtn = document.getElementById('remove-logo-btn');
+            if (p.customLogo) {
+                removeLogoBtn.classList.remove('hidden');
+            } else {
+                removeLogoBtn.classList.add('hidden');
+            }
+
+            updateAspectButtonsUI();
+            updateThemeButtonsUI();
+            renderListItemsEditor();
+            renderPlacedEmojisEditor();
+        }
+
+        function updateCurrentPage(key, value) {
+            getCurrentPage()[key] = value;
+            if (key === 'aspect') updateAspectButtonsUI();
+            renderPreviewCard();
+            saveToLocalStorage();
+        }
+
+        // ==========================================
+        // 6. ÉDITION DE LA LISTE DES PETITES LIGNES
+        // ==========================================
+        function renderListItemsEditor() {
+            const container = document.getElementById('list-items-editor');
+            const items = getCurrentPage().items;
+            container.innerHTML = '';
+
+            items.forEach((item, idx) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2 bg-slate-950/90 p-2 rounded-xl border border-slate-800';
+
+                // Input Emoji / Puce
+                const iconInput = document.createElement('input');
+                iconInput.type = 'text';
+                iconInput.value = item.icon;
+                iconInput.maxLength = 4;
+                iconInput.className = 'w-11 h-9 text-center rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-amber-500 focus:outline-none';
+                iconInput.oninput = (e) => {
+                    item.icon = e.target.value;
+                    renderPreviewCard();
+                    saveToLocalStorage();
+                };
+
+                // Input Texte de la ligne
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.value = item.text;
+                textInput.placeholder = 'Texte de la ligne...';
+                textInput.className = 'flex-1 h-9 px-3 rounded-lg bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white focus:border-amber-500 focus:outline-none';
+                textInput.oninput = (e) => {
+                    item.text = e.target.value;
+                    renderPreviewCard();
+                    saveToLocalStorage();
+                };
+
+                // Bouton supprimer ligne
+                const delBtn = document.createElement('button');
+                delBtn.innerHTML = '🗑️';
+                delBtn.title = 'Supprimer cette ligne';
+                delBtn.className = 'p-1.5 rounded-lg hover:bg-red-950/60 text-xs transition';
+                delBtn.onclick = () => {
+                    getCurrentPage().items.splice(idx, 1);
+                    renderListItemsEditor();
+                    renderPreviewCard();
+                    saveToLocalStorage();
+                };
+
+                row.appendChild(iconInput);
+                row.appendChild(textInput);
+                row.appendChild(delBtn);
+                container.appendChild(row);
+            });
+        }
+
+        function addListItem() {
+            const defaultIcons = ['✨', '🎯', '🔥', '⚡', '🎮', '✅'];
+            const randomIcon = defaultIcons[getCurrentPage().items.length % defaultIcons.length];
+            getCurrentPage().items.push({
+                id: Date.now(),
+                icon: randomIcon,
+                text: 'Nouvelle ligne d’information'
+            });
+            renderListItemsEditor();
+            renderPreviewCard();
+            saveToLocalStorage();
+        }
+
+        // ==========================================
+        // 6. ÉDITION DE LA LISTE DES PETITES LIGNES
+        // ==========================================
+        function renderListItemsEditor() {
+            const container = document.getElementById('list-items-editor');
+            const items = getCurrentPage().items;
+            container.innerHTML = '';
+
+            items.forEach((item, idx) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2 bg-slate-950/90 p-2 rounded-xl border border-slate-800';
+
+                // Input Emoji / Puce
+                const iconInput = document.createElement('input');
+                iconInput.type = 'text';
+                iconInput.value = item.icon;
+                iconInput.maxLength = 4;
+                iconInput.className = 'w-11 h-9 text-center rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:border-amber-500 focus:outline-none';
+                iconInput.oninput = (e) => {
+                    item.icon = e.target.value;
+                    renderPreviewCard();
+                };
+
+                // Input Texte de la ligne
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.value = item.text;
+                textInput.placeholder = 'Texte de la ligne...';
+                textInput.className = 'flex-1 h-9 px-3 rounded-lg bg-slate-900 border border-slate-700 text-xs sm:text-sm text-white focus:border-amber-500 focus:outline-none';
+                textInput.oninput = (e) => {
+                    item.text = e.target.value;
+                    renderPreviewCard();
+                };
+
+                // Bouton supprimer ligne
+                const delBtn = document.createElement('button');
+                delBtn.innerHTML = '🗑️';
+                delBtn.title = 'Supprimer cette ligne';
+                delBtn.className = 'p-1.5 rounded-lg hover:bg-red-950/60 text-xs transition';
+                delBtn.onclick = () => {
+                    getCurrentPage().items.splice(idx, 1);
+                    renderListItemsEditor();
+                    renderPreviewCard();
+                };
+
+                row.appendChild(iconInput);
+                row.appendChild(textInput);
+                row.appendChild(delBtn);
+                container.appendChild(row);
+            });
+        }
+
+        function addListItem() {
+            const defaultIcons = ['✨', '🎯', '🔥', '⚡', '🎮', '✅'];
+            const randomIcon = defaultIcons[getCurrentPage().items.length % defaultIcons.length];
+            getCurrentPage().items.push({
+                id: Date.now(),
+                icon: randomIcon,
+                text: 'Nouvelle ligne d’information'
+            });
+            renderListItemsEditor();
+            renderPreviewCard();
+        }
+
+        // ==========================================
+        // 7. GESTION DES EMOJIS SUR LES BORDS
+        // ==========================================
+        function renderQuickEmojis() {
+            const grid = document.getElementById('quick-emojis-grid');
+            grid.innerHTML = '';
+            QUICK_EMOJIS.forEach(emoji => {
+                const btn = document.createElement('button');
+                btn.textContent = emoji;
+                btn.className = 'w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 text-lg flex items-center justify-center transition active:scale-90';
+                btn.onclick = () => addEdgeEmoji(emoji);
+                grid.appendChild(btn);
+            });
+        }
+
+        function addCustomEmoji() {
+            const input = document.getElementById('custom-emoji-input');
+            const val = input.value.trim();
+            if (!val) return;
+            addEdgeEmoji(val);
+            input.value = '';
+        }
+
+        function addEdgeEmoji(char) {
+            const p = getCurrentPage();
+            const slot = EDGE_SLOTS[p.edgeEmojis.length % EDGE_SLOTS.length];
+            // Léger décalage aléatoire pour éviter la superposition parfaite
+            const offsetX = (Math.random() - 0.5) * 4;
+            const offsetY = (Math.random() - 0.5) * 4;
+
+            p.edgeEmojis.push({
+                id: Date.now() + Math.random(),
+                char: char,
+                x: Math.max(4, Math.min(96, Math.round(slot.x + offsetX))),
+                y: Math.max(4, Math.min(96, Math.round(slot.y + offsetY))),
+                size: 30,
+                rot: slot.rot
+            });
+
+            renderPlacedEmojisEditor();
+            renderPreviewCard();
+            saveToLocalStorage();
+        }
+
+        function autoDistributeEmojis() {
+            const p = getCurrentPage();
+            p.edgeEmojis.forEach((em, idx) => {
+                const slot = EDGE_SLOTS[idx % EDGE_SLOTS.length];
+                em.x = slot.x;
+                em.y = slot.y;
+                em.rot = slot.rot;
+            });
+            renderPlacedEmojisEditor();
+            renderPreviewCard();
+            saveToLocalStorage();
+            showToast('Emojis répartis harmonieusement sur les bords !');
+        }
+
+        function clearAllEmojis() {
+            getCurrentPage().edgeEmojis = [];
+            renderPlacedEmojisEditor();
+            renderPreviewCard();
+            saveToLocalStorage();
+        }
+
+        function autoDistributeEmojis() {
+            const p = getCurrentPage();
+            p.edgeEmojis.forEach((em, idx) => {
+                const slot = EDGE_SLOTS[idx % EDGE_SLOTS.length];
+                em.x = slot.x;
+                em.y = slot.y;
+                em.rot = slot.rot;
+            });
+            renderPlacedEmojisEditor();
+            renderPreviewCard();
+            showToast('Emojis répartis harmonieusement sur les bords !');
+        }
+
+        function clearAllEmojis() {
+            getCurrentPage().edgeEmojis = [];
+            renderPlacedEmojisEditor();
+            renderPreviewCard();
+        }
+
+        function renderPlacedEmojisEditor() {
+            const list = document.getElementById('placed-emojis-list');
+            const emojis = getCurrentPage().edgeEmojis;
+            document.getElementById('emoji-count').textContent = emojis.length;
+            list.innerHTML = '';
+
+            if (emojis.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-500 italic text-center py-4">Aucun emoji sur les bords pour le moment.</p>';
+                return;
+            }
+
+            emojis.forEach((em, idx) => {
+                const card = document.createElement('div');
+                card.className = 'p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">${em.char}</span>
+                            <span class="text-xs font-semibold text-slate-300">Bord #${idx + 1}</span>
+                        </div>
+                        <button onclick="removeEdgeEmoji(${idx})" class="text-xs text-red-400 hover:text-red-300 px-2 py-0.5 rounded bg-red-950/40">Retirer</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+                        <label class="flex flex-col gap-1">
+                            <span>Horizontal (X: ${em.x}%)</span>
+                            <input type="range" min="2" max="98" value="${em.x}" oninput="updateEdgeEmojiProp(${idx}, 'x', this.value)" class="accent-amber-500">
+                        </label>
+                        <label class="flex flex-col gap-1">
+                            <span>Vertical (Y: ${em.y}%)</span>
+                            <input type="range" min="2" max="98" value="${em.y}" oninput="updateEdgeEmojiProp(${idx}, 'y', this.value)" class="accent-amber-500">
+                        </label>
+                        <label class="flex flex-col gap-1">
+                            <span>Taille (${em.size}px)</span>
+                            <input type="range" min="16" max="64" value="${em.size}" oninput="updateEdgeEmojiProp(${idx}, 'size', this.value)" class="accent-amber-500">
+                        </label>
+                        <label class="flex flex-col gap-1">
+                            <span>Rotation (${em.rot}°)</span>
+                            <input type="range" min="-45" max="45" value="${em.rot}" oninput="updateEdgeEmojiProp(${idx}, 'rot', this.value)" class="accent-amber-500">
+                        </label>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function updateEdgeEmojiProp(index, prop, value) {
+            getCurrentPage().edgeEmojis[index][prop] = Number(value);
+            renderPreviewCard();
+            saveToLocalStorage();
+            // Met à jour l'étiquette sans détruire le focus du slider
+            const labels = document.getElementById('placed-emojis-list').children[index].querySelectorAll('span');
+            if (prop === 'x') labels[2].textContent = `Horizontal (X: ${value}%)`;
+            if (prop === 'y') labels[3].textContent = `Vertical (Y: ${value}%)`;
+            if (prop === 'size') labels[4].textContent = `Taille (${value}px)`;
+            if (prop === 'rot') labels[5].textContent = `Rotation (${value}°)`;
+        }
+
+        function removeEdgeEmoji(index) {
+            getCurrentPage().edgeEmojis.splice(index, 1);
+            renderPlacedEmojisEditor();
+            renderPreviewCard();
+            saveToLocalStorage();
+        }
+
+        function removeEdgeEmoji(index) {
+            getCurrentPage().edgeEmojis.splice(index, 1);
+            renderPlacedEmojisEditor();
+            renderPreviewCard();
+        }
+
+        // ==========================================
+        // 8. GESTION DES THÈMES, FORMATS & LOGO
+        // ==========================================
+        function renderThemesGrid() {
+            const grid = document.getElementById('themes-grid');
+            grid.innerHTML = '';
+            THEMES.forEach(theme => {
+                const btn = document.createElement('button');
+                btn.id = `theme-btn-${theme.id}`;
+                btn.className = 'theme-choice-btn p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition';
+                btn.onclick = () => applyTheme(theme);
+
+                btn.innerHTML = `
+                    <div class="w-7 h-7 rounded-lg shrink-0 border border-white/20 shadow-inner" style="background: linear-gradient(135deg, ${theme.bg1}, ${theme.bg2}); display: flex; align-items: center; justify-content: center;">
+                        <div class="w-2.5 h-2.5 rounded-full" style="background-color: ${theme.accent};"></div>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-200 leading-tight">${theme.name}</span>
+                `;
+                grid.appendChild(btn);
+            });
+        }
+
+        function applyTheme(theme) {
+            const p = getCurrentPage();
+            p.themeId = theme.id;
+            p.bg1 = theme.bg1;
+            p.bg2 = theme.bg2;
+            p.accent = theme.accent;
+
+            document.getElementById('color-bg1').value = theme.bg1;
+            document.getElementById('color-bg2').value = theme.bg2;
+            document.getElementById('color-accent').value = theme.accent;
+
+            updateThemeButtonsUI();
+            renderPreviewCard();
+            saveToLocalStorage();
+        }
+
+        function updateCustomColors() {
+            const p = getCurrentPage();
+            p.themeId = 'custom';
+            p.bg1 = document.getElementById('color-bg1').value;
+            p.bg2 = document.getElementById('color-bg2').value;
+            p.accent = document.getElementById('color-accent').value;
+            updateThemeButtonsUI();
+            renderPreviewCard();
+            saveToLocalStorage();
+        }
+
+        function updateCustomColors() {
+            const p = getCurrentPage();
+            p.themeId = 'custom';
+            p.bg1 = document.getElementById('color-bg1').value;
+            p.bg2 = document.getElementById('color-bg2').value;
+            p.accent = document.getElementById('color-accent').value;
+            updateThemeButtonsUI();
+            renderPreviewCard();
+        }
+
+        function updateThemeButtonsUI() {
+            const currentThemeId = getCurrentPage().themeId;
+            document.querySelectorAll('.theme-choice-btn').forEach(btn => {
+                if (btn.id === `theme-btn-${currentThemeId}`) {
+                    btn.classList.add('bg-slate-800', 'border-amber-500');
+                    btn.classList.remove('bg-slate-950/60', 'border-slate-800');
+                } else {
+                    btn.classList.remove('bg-slate-800', 'border-amber-500');
+                    btn.classList.add('bg-slate-950/60', 'border-slate-800');
+                }
+            });
+        }
+
+        function updateAspectButtonsUI() {
+            const currentAspect = getCurrentPage().aspect;
+            ['1:1', '9:16', '16:9'].forEach(asp => {
+                const btn = document.getElementById(`aspect-${asp}`);
+                if (asp === currentAspect) {
+                    btn.className = 'aspect-btn p-2.5 rounded-xl border border-amber-500 bg-slate-800 text-amber-400 text-center transition';
+                } else {
+                    btn.className = 'aspect-btn p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-400 hover:text-slate-200 text-center transition';
+                }
+            });
+        }
+
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                getCurrentPage().customLogo = e.target.result;
+                getCurrentPage().showEmblem = true;
+                document.getElementById('input-show-emblem').checked = true;
+                document.getElementById('remove-logo-btn').classList.remove('hidden');
+                renderPreviewCard();
+                saveToLocalStorage();
+                showToast('Image importée sur la carte !');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeCustomLogo() {
+            getCurrentPage().customLogo = null;
+            document.getElementById('remove-logo-btn').classList.add('hidden');
+            renderPreviewCard();
+            saveToLocalStorage();
+        }
+
+        function removeCustomLogo() {
+            getCurrentPage().customLogo = null;
+            document.getElementById('remove-logo-btn').classList.add('hidden');
+            renderPreviewCard();
+        }
+
+        // ==========================================
+        // 9. RENDU DE LA CARTE VISUELLE (APERÇU)
+        // ==========================================
+        function renderPreviewCard() {
+            const p = getCurrentPage();
+            const card = document.getElementById('capture-canvas');
+
+            // 1. Dimensions selon le format choisi
+            if (p.aspect === '1:1') {
+                card.style.width = 'min(90vw, 460px)';
+                card.style.height = 'min(90vw, 460px)';
+            } else if (p.aspect === '9:16') {
+                card.style.width = 'min(82vw, 340px)';
+                card.style.height = 'min(145vw, 604px)';
+            } else if (p.aspect === '16:9') {
+                card.style.width = 'min(92vw, 560px)';
+                card.style.height = 'min(52vw, 315px)';
+            }
+
+            // 2. Dégradé de fond + reflet lumineux
+            card.style.background = `radial-gradient(circle at 80% 15%, ${p.bg1} 0%, ${p.bg2} 85%)`;
+            const ambient = document.getElementById('card-ambient-glow');
+            ambient.style.background = `radial-gradient(circle at 85% 10%, rgba(255,255,255,0.14) 0%, transparent 55%)`;
+
+            // 3. Cadre intérieur
+            const innerFrame = document.getElementById('card-inner-frame');
+            if (p.showBorder) {
+                innerFrame.style.display = 'block';
+                innerFrame.style.borderColor = hexToRgba(p.accent, 0.35);
+            } else {
+                innerFrame.style.display = 'none';
+            }
+
+            // 4. Emblème / Logo
+            const emblemContainer = document.getElementById('card-emblem-container');
+            const defaultSvg = document.getElementById('default-emblem-svg');
+            const customImg = document.getElementById('custom-emblem-img');
+
+            if (p.showEmblem) {
+                emblemContainer.style.display = 'flex';
+                if (p.customLogo) {
+                    defaultSvg.classList.add('hidden');
+                    customImg.classList.remove('hidden');
+                    customImg.src = p.customLogo;
+                } else {
+                    customImg.classList.add('hidden');
+                    defaultSvg.classList.remove('hidden');
+                    defaultSvg.style.color = p.accent;
+                }
+            } else {
+                emblemContainer.style.display = 'none';
+            }
+
+            // 5. Badge / Sur-titre
+            const badgeEl = document.getElementById('card-badge');
+            if (p.showBadge && p.badge.trim() !== '') {
+                badgeEl.style.display = 'inline-block';
+                badgeEl.textContent = p.badge;
+                badgeEl.style.color = p.accent;
+                badgeEl.style.borderColor = hexToRgba(p.accent, 0.45);
+                badgeEl.style.backgroundColor = 'rgba(0, 0, 0, 0.28)';
+            } else {
+                badgeEl.style.display = 'none';
+            }
+
+            // 6. Titre et Sous-titre
+            const titleEl = document.getElementById('card-title');
+            titleEl.textContent = p.title || 'Titre de la nouveauté';
+            titleEl.style.color = '#ffffff';
+
+            const subEl = document.getElementById('card-subtitle');
+            if (p.subtitle && p.subtitle.trim() !== '') {
+                subEl.style.display = 'block';
+                subEl.textContent = p.subtitle;
+                subEl.style.color = p.accent;
+            } else {
+                subEl.style.display = 'none';
+            }
+
+            // 7. Liste des petites lignes
+            const listContainer = document.getElementById('card-list-container');
+            listContainer.innerHTML = '';
+            p.items.forEach(item => {
+                if (!item.text.trim() && !item.icon.trim()) return;
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-3 px-3.5 py-2 rounded-xl backdrop-blur-md border shadow-sm';
+                row.style.backgroundColor = 'rgba(0, 0, 0, 0.30)';
+                row.style.borderColor = hexToRgba(p.accent, 0.25);
+
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'text-base sm:text-lg shrink-0';
+                iconSpan.textContent = item.icon;
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'text-xs sm:text-sm font-semibold text-white leading-snug';
+                textSpan.textContent = item.text;
+
+                row.appendChild(iconSpan);
+                row.appendChild(textSpan);
+                listContainer.appendChild(row);
+            });
+
+            // 8. Pied de carte / Signature
+            const footerContainer = document.getElementById('card-footer-container');
+            const footerEl = document.getElementById('card-footer');
+            if (p.showFooter && p.footer.trim() !== '') {
+                footerContainer.style.display = 'block';
+                footerEl.textContent = p.footer;
+                footerEl.style.color = p.accent;
+            } else {
+                footerContainer.style.display = 'none';
+            }
+
+            // 9. Emojis sur les bords (avec déplacement par glisser-déposer direct sur la carte !)
+            const emojisLayer = document.getElementById('card-emojis-layer');
+            emojisLayer.innerHTML = '';
+            p.edgeEmojis.forEach((em, idx) => {
+                const span = document.createElement('div');
+                span.textContent = em.char;
+                span.title = 'Glisse pour déplacer sur les bords';
+                span.className = 'edge-emoji absolute -translate-x-1/2 -translate-y-1/2';
+                span.style.left = `${em.x}%`;
+                span.style.top = `${em.y}%`;
+                span.style.fontSize = `${em.size}px`;
+                span.style.transform = `translate(-50%, -50%) rotate(${em.rot}deg)`;
+
+                // Permet de glisser-déposer directement l'emoji à la souris ou au doigt
+                makeEmojiDraggable(span, idx);
+                emojisLayer.appendChild(span);
+            });
+        }
+
+        // Glisser-déposer interactif sur la carte pour placer facilement les emojis sur les bords
+        function makeEmojiDraggable(element, emojiIndex) {
+            let isDragging = false;
+            const card = document.getElementById('capture-canvas');
+
+            const onStart = (e) => {
+                isDragging = true;
+                e.preventDefault();
+            };
+
+            const onMove = (e) => {
+                if (!isDragging) return;
+                const rect = card.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                let xPercent = Math.round(((clientX - rect.left) / rect.width) * 100);
+                let yPercent = Math.round(((clientY - rect.top) / rect.height) * 100);
+
+                xPercent = Math.max(2, Math.min(98, xPercent));
+                yPercent = Math.max(2, Math.min(98, yPercent));
+
+                const em = getCurrentPage().edgeEmojis[emojiIndex];
+                if (em) {
+                    em.x = xPercent;
+                    em.y = yPercent;
+                    element.style.left = `${xPercent}%`;
+                    element.style.top = `${yPercent}%`;
+                }
+            };
+
+            const onEnd = () => {
+                if (isDragging) {
+                    isDragging = false;
+                    renderPlacedEmojisEditor();
+                    saveToLocalStorage();
+                }
+            };
+
+            element.addEventListener('mousedown', onStart);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+
+            element.addEventListener('touchstart', onStart, { passive: false });
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('touchend', onEnd);
+        }
+
+        // Utilitaire de conversion Hex vers RGBA
+        function hexToRgba(hex, alpha) {
+            const cleanHex = hex.replace('#', '');
+            const r = parseInt(cleanHex.substring(0, 2), 16);
+            const g = parseInt(cleanHex.substring(2, 4), 16);
+            const b = parseInt(cleanHex.substring(4, 6), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // ==========================================
+        // 10. MODE CAPTURE D'ÉCRAN & EXPORT PNG
+        // ==========================================
+        function toggleScreenshotMode() {
+            document.body.classList.toggle('screenshot-mode');
+            if (document.body.classList.contains('screenshot-mode')) {
+                showToast('Mode capture activé ! Tu peux faire ta capture d’écran.');
+            }
+        }
+
+        async function downloadCurrentCard() {
+            const btn = document.getElementById('download-btn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span>Génération...</span>';
+            btn.disabled = true;
+
+            try {
+                const cardElement = document.getElementById('capture-canvas');
+                const canvas = await html2canvas(cardElement, {
+                    scale: 3, // Haute définition
+                    backgroundColor: null,
+                    useCORS: true,
+                    logging: false
+                });
+
+                const link = document.createElement('a');
+                const safeTitle = (getCurrentPage().title || 'nouveaute').toLowerCase().replace(/[^a-z0-9]/g, '-');
+                link.download = `tonin-connect-${safeTitle}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast('Image PNG téléchargée !');
+            } catch (err) {
+                console.error(err);
+                showToast('Utilise le Mode Capture pour faire une capture d’écran.');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
